@@ -37,14 +37,11 @@ def read_grid(file_path: Path) -> list[list[int]]:
         for row in range(GRID_SIZE)
     ]
 
+
 def build_initial_masks(
     grid: list[list[int]],
 ) -> tuple[list[int], list[int], list[int]]:
-    """Build row, column, and box masks from the puzzle's given values.
-
-    Raises ValueError if the grid shape, cell values, or given values are
-    inconsistent with Sudoku rules.
-    """
+    """Build row, column, and box masks from the puzzle's given values."""
     if len(grid) != GRID_SIZE or any(len(row) != GRID_SIZE for row in grid):
         raise ValueError("Sudoku grid must contain 9 rows of 9 cells.")
 
@@ -62,6 +59,7 @@ def build_initial_masks(
 
             bit = 1 << (value - 1)
             box = (row // BOX_SIZE) * BOX_SIZE + column // BOX_SIZE
+
             if (
                 row_masks[row] & bit
                 or column_masks[column] & bit
@@ -80,16 +78,12 @@ def build_initial_masks(
 
 
 def find_cell_with_fewest_candidates(
-    grid: list[list[int]], 
-    row_masks: list[int], 
-    column_masks: list[int], 
-    box_masks: list[int]
+    grid: list[list[int]],
+    row_masks: list[int],
+    column_masks: list[int],
+    box_masks: list[int],
 ) -> tuple[int, int, int]:
-    """Return the empty cell with the fewest candidates and its mask.
-
-    Returns ``(-1, -1, 0)`` when the grid has no empty cells. A zero mask
-    for an actual cell means that the current branch cannot be solved.
-    """
+    """Return the empty cell with the fewest candidates and its mask."""
     best_row, best_column = -1, -1
     fewest_candidates = GRID_SIZE + 1
     best_mask = 0
@@ -119,26 +113,37 @@ def find_cell_with_fewest_candidates(
 
 
 def solve_grid(sudoku_grid: list[list[int]]) -> list[list[int]]:
-    """Return a solved copy of a Sudoku grid, or raise ValueError."""
+    """Return the first solved board found."""
+    solutions = solve_all_grids(sudoku_grid)
+    if not solutions:
+        raise ValueError("Puzzle has no solution")
+    return solutions[0]
+
+
+def solve_all_grids(sudoku_grid: list[list[int]]) -> list[list[list[int]]]:
+    """Return every valid solution for the given Sudoku puzzle."""
     grid_copy = [row[:] for row in sudoku_grid]
     row_masks, column_masks, box_masks = build_initial_masks(grid_copy)
+    solutions: list[list[list[int]]] = []
 
-    def backtrack() -> bool:
+    def backtrack() -> None:
         row, column, candidate_mask = find_cell_with_fewest_candidates(
             grid_copy, row_masks, column_masks, box_masks
         )
 
         if row == -1 and column == -1:
-            return True
+            solutions.append([current_row[:] for current_row in grid_copy])
+            return
 
         if candidate_mask == 0:
-            return False
+            return
 
         box = (row // BOX_SIZE) * BOX_SIZE + column // BOX_SIZE
 
-        while candidate_mask:
-            bit = candidate_mask & -candidate_mask
-            candidate_mask ^= bit
+        local_candidates = candidate_mask
+        while local_candidates:
+            bit = local_candidates & -local_candidates
+            local_candidates ^= bit
             value = bit.bit_length()
 
             grid_copy[row][column] = value
@@ -146,36 +151,34 @@ def solve_grid(sudoku_grid: list[list[int]]) -> list[list[int]]:
             column_masks[column] |= bit
             box_masks[box] |= bit
 
-            if backtrack():
-                return True
+            backtrack()
 
             grid_copy[row][column] = EMPTY_CELL
             row_masks[row] ^= bit
             column_masks[column] ^= bit
             box_masks[box] ^= bit
 
-        return False
-
-    if backtrack():
-        return grid_copy
-    raise ValueError("Puzzle has no solution")
+    backtrack()
+    return solutions
 
 
 def main() -> None:
-    """Read a sample puzzle, solve it, and print the result."""
+    """Read a sample puzzle, solve it, and print every solution."""
     samples_dir = Path(__file__).resolve().parent.parent / "samples"
-    file_name = "sample-sudoku-2.txt"
+    file_name = "sample-sudoku-3.txt"
     sample_file = samples_dir / file_name
 
     if not sample_file.exists():
         raise FileNotFoundError(f"Sample Sudoku file not found: {sample_file}")
 
     sudoku_grid = read_grid(sample_file)
-    solved_grid = solve_grid(sudoku_grid)
+    solutions = solve_all_grids(sudoku_grid)
 
-    print("\nFinal Solved Grid (All 81 Cells):")
-    for row in solved_grid:
-        print(row)
+    print(f"\nFound {len(solutions)} solution(s):")
+    for index, solution in enumerate(solutions, start=1):
+        print(f"\nSolution {index}:")
+        for row in solution:
+            print(row)
 
 
 if __name__ == "__main__":
