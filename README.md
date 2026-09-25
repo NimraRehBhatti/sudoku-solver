@@ -94,4 +94,4 @@ sudoku-solver/
 - The input filename is currently configured in `solver.py`.
 - The solver returns up to two solutions by default; it can enumerate every
   solution when called with `max_solutions=None`.
-- Automated tests and command-line argument support have not been added yet.
+- Command-line argument support has not been added yet.
