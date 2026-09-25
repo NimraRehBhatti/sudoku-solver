@@ -9,7 +9,7 @@ EMPTY_CELL = 0
 ALL_DIGITS_MASK = (1 << GRID_SIZE) - 1
 
 
-def read_grid(file_path: Path) -> list[list[int]]:
+def read_grid_from_input_file(file_path: Path) -> list[list[int]]:
     """Read and validate a comma-separated Sudoku grid from a file."""
     with file_path.open("r", encoding="utf-8") as file:
         text = file.read()
@@ -112,16 +112,14 @@ def find_cell_with_fewest_candidates(
     return best_row, best_column, best_mask
 
 
-def solve_grid(sudoku_grid: list[list[int]]) -> list[list[int]]:
-    """Return the first solved board found."""
-    solutions = solve_all_grids(sudoku_grid)
-    if not solutions:
-        raise ValueError("Puzzle has no solution")
-    return solutions[0]
+def solve_all_grids(
+    sudoku_grid: list[list[int]],
+    max_solutions: int | None = 2,
+) -> list[list[list[int]]]:
+    """Return solutions, stopping after two unless another limit is given."""
+    if max_solutions is not None and max_solutions < 1:
+        raise ValueError("max_solutions must be at least 1 or None.")
 
-
-def solve_all_grids(sudoku_grid: list[list[int]]) -> list[list[list[int]]]:
-    """Return every valid solution for the given Sudoku puzzle."""
     grid_copy = [row[:] for row in sudoku_grid]
     row_masks, column_masks, box_masks = build_initial_masks(grid_copy)
     solutions: list[list[list[int]]] = []
@@ -133,10 +131,10 @@ def solve_all_grids(sudoku_grid: list[list[int]]) -> list[list[list[int]]]:
 
         if row == -1 and column == -1:
             solutions.append([current_row[:] for current_row in grid_copy])
-            return
+            return max_solutions is not None and len(solutions) >= max_solutions
 
         if candidate_mask == 0:
-            return
+            return False
 
         box = (row // BOX_SIZE) * BOX_SIZE + column // BOX_SIZE
 
@@ -151,28 +149,44 @@ def solve_all_grids(sudoku_grid: list[list[int]]) -> list[list[list[int]]]:
             column_masks[column] |= bit
             box_masks[box] |= bit
 
-            backtrack()
+            reached_limit = backtrack()
 
             grid_copy[row][column] = EMPTY_CELL
             row_masks[row] ^= bit
             column_masks[column] ^= bit
             box_masks[box] ^= bit
 
+            if reached_limit:
+                return True
+
+        return False
+
     backtrack()
     return solutions
 
 
 def main() -> None:
-    """Read a sample puzzle, solve it, and print every solution."""
+    """Read a sample puzzle, find up to two solutions, and print them."""
     samples_dir = Path(__file__).resolve().parent.parent / "samples"
-    file_name = "sample-sudoku-3.txt"
+    file_name = "sample-sudoku-4.txt"
     sample_file = samples_dir / file_name
 
     if not sample_file.exists():
         raise FileNotFoundError(f"Sample Sudoku file not found: {sample_file}")
+    if not sample_file.is_file():
+        raise ValueError(f"Sample Sudoku path is not a regular file: {sample_file}")
 
-    sudoku_grid = read_grid(sample_file)
-    solutions = solve_all_grids(sudoku_grid)
+    try:
+        sudoku_grid = read_grid_from_input_file(sample_file)
+    except UnicodeDecodeError as error:
+        raise ValueError(
+            f"Sample Sudoku file is not valid UTF-8: {sample_file}"
+        ) from error
+    except OSError as error:
+        raise PermissionError(
+            f"Sample Sudoku file is not readable: {sample_file}"
+        ) from error
+    solutions = solve_all_grids(sudoku_grid, max_solutions=None)
 
     print(f"\nFound {len(solutions)} solution(s):")
     for index, solution in enumerate(solutions, start=1):
