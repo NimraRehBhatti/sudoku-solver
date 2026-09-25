@@ -1,5 +1,6 @@
 """Utilities for reading and solving Sudoku puzzles with high-performance bitmasks."""
 # Bit 0 represents 1, bit 1 represents 2, ..., bit 8 represents 9.
+import argparse
 from pathlib import Path
 
 GRID_SIZE = 9
@@ -165,34 +166,80 @@ def solve_all_grids(
     return solutions
 
 
-def main() -> None:
-    """Read a sample puzzle, find up to two solutions, and print them."""
-    samples_dir = Path(__file__).resolve().parent.parent / "samples"
-    file_name = "sample-sudoku-4.txt"
-    sample_file = samples_dir / file_name
+def positive_integer(value: str) -> int:
+    """Convert a command-line value to a positive integer."""
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return number
 
-    if not sample_file.exists():
-        raise FileNotFoundError(f"Sample Sudoku file not found: {sample_file}")
-    if not sample_file.is_file():
-        raise ValueError(f"Sample Sudoku path is not a regular file: {sample_file}")
+
+def print_solution(solution: list[list[int]]) -> None:
+    """Print a Sudoku solution in a readable format."""
+    for row_index, row in enumerate(solution):
+        if row_index in (3, 6):
+            print("------+-------+------")
+
+        print(
+            f"{row[0]} {row[1]} {row[2]} | "
+            f"{row[3]} {row[4]} {row[5]} | "
+            f"{row[6]} {row[7]} {row[8]}"
+        )
+
+
+def main() -> None:
+    """Run the Sudoku solver command-line interface."""
+    parser = argparse.ArgumentParser(
+        description="Solve a Sudoku puzzle stored in a file."
+    )
+    parser.add_argument(
+        "input_file",
+        type=Path,
+        help="path to a file containing exactly 81 Sudoku values",
+    )
+
+    solution_limit = parser.add_mutually_exclusive_group()
+    solution_limit.add_argument(
+        "--max-solutions",
+        type=positive_integer,
+        default=2,
+        help="maximum number of solutions to find (default: 2)",
+    )
+    solution_limit.add_argument(
+        "--all",
+        action="store_true",
+        help="find every possible solution",
+    )
+
+    args = parser.parse_args()
 
     try:
-        sudoku_grid = read_grid_from_input_file(sample_file)
-    except UnicodeDecodeError as error:
-        raise ValueError(
-            f"Sample Sudoku file is not valid UTF-8: {sample_file}"
-        ) from error
+        sudoku_grid = read_grid_from_input_file(args.input_file)
+        max_solutions = None if args.all else args.max_solutions
+        solutions = solve_all_grids(
+            sudoku_grid,
+            max_solutions=max_solutions,
+        )
+    except FileNotFoundError:
+        parser.error(f"file not found: {args.input_file}")
+    except IsADirectoryError:
+        parser.error(f"expected a file, got a directory: {args.input_file}")
+    except UnicodeDecodeError:
+        parser.error(f"file is not valid UTF-8: {args.input_file}")
     except OSError as error:
-        raise PermissionError(
-            f"Sample Sudoku file is not readable: {sample_file}"
-        ) from error
-    solutions = solve_all_grids(sudoku_grid, max_solutions=None)
+        parser.error(f"could not read {args.input_file}: {error}")
+    except ValueError as error:
+        parser.error(str(error))
 
-    print(f"\nFound {len(solutions)} solution(s):")
+    print(f"Found {len(solutions)} solution(s).")
+
+    if not solutions:
+        print("The puzzle has no solution.")
+        return
+
     for index, solution in enumerate(solutions, start=1):
         print(f"\nSolution {index}:")
-        for row in solution:
-            print(row)
+        print_solution(solution)
 
 
 if __name__ == "__main__":

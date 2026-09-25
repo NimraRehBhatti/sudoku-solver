@@ -21,32 +21,56 @@ Example:
 Values must be digits from `1` to `9`, or empty cells. Sample puzzles are in
 the `samples/` directory.
 
+
 ## Run the Solver
+
+The solver accepts a puzzle file as a command-line argument.
 
 From the project root, run:
 
 ```powershell
-python sudoku/solver.py
+python sudoku/solver.py samples/sample-sudoku-2.txt
 ```
 
-The current entry point reads `samples/sample-sudoku-2.txt` and prints up to
-two solutions. Finding two solutions is enough to show that a puzzle is not
-unique.
+The input file must contain exactly 81 comma-separated values. Values must
+be digits from `1` to `9`, or empty values for unsolved cells.
 
-By default, the solver stops after two solutions:
+By default, the solver stops after finding two solutions. This is enough to
+determine whether a puzzle has a unique solution.
 
-```python
-solutions = solve_all_grids(grid)
+To find only one solution:
+
+```powershell
+python sudoku/solver.py samples/sample-sudoku-2.txt --max-solutions 1
 ```
 
-To find every possible solution, disable the limit explicitly:
+To find up to five solutions:
 
-```python
-solutions = solve_all_grids(grid, max_solutions=None)
+```powershell
+python sudoku/solver.py samples/sample-sudoku-2.txt --max-solutions 5
 ```
 
-The exhaustive mode may take significantly longer for puzzles with many
-possible solutions.
+To find every possible solution:
+
+```powershell
+python sudoku/solver.py samples/sample-sudoku-2.txt --all
+```
+
+The exhaustive `--all` mode may take significantly longer for puzzles with
+many possible solutions.
+
+To display the available command-line options:
+
+```powershell
+python sudoku/solver.py --help
+```
+
+If you add `sudoku/__main__.py`, you can also run the solver as a Python
+module:
+
+```powershell
+python -m sudoku samples/sample-sudoku-2.txt
+```
 
 ## Run the Tests
 
@@ -57,8 +81,8 @@ python -m unittest discover -s tests -v
 ```
 
 The tests cover malformed files, invalid grid values and shapes, duplicate
-givens, unique and multiple-solution puzzles, solution limits, and input-grid
-immutability.
+givens, unique and multiple-solution puzzles, solution limits, unsolvable
+puzzles, and input-grid immutability.
 
 ## How It Works
 
@@ -73,25 +97,33 @@ values are calculated by combining those masks. The solver chooses the empty
 cell with the fewest candidates, tries each candidate, and backtracks when a
 choice cannot lead to a solution.
 
+
 ## Project Structure
 
 ```text
 sudoku-solver/
 |-- samples/
 |   |-- sample-sudoku.txt
-|   `-- sample-sudoku-2.txt
+|   |-- sample-sudoku-2.txt
+|   |-- sample-sudoku-3.txt
+|   `-- sample-sudoku-4.txt
 |-- tests/
 |   `-- test_solver.py
 |-- sudoku/
 |   |-- __init__.py
 |   `-- solver.py
+|-- .github/
+|   `-- workflows/
+|       `-- main.yml
 |-- .gitignore
 `-- README.md
+```
 ```
 
 ## Current Limitations
 
-- The input filename is currently configured in `solver.py`.
-- The solver returns up to two solutions by default; it can enumerate every
-  solution when called with `max_solutions=None`.
-- Command-line argument support has not been added yet.
+- Only the standard 9x9 Sudoku format is supported.
+- Input puzzles must be stored as comma-separated values with exactly 81 cells.
+- The solver uses backtracking and does not provide step-by-step explanations.
+- Finding every solution with `--all` may take a long time for puzzles with many
+  possible solutions.
