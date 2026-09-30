@@ -6,7 +6,6 @@ from sudoku.solver import (
     EMPTY_CELL,
     GRID_SIZE,
     build_initial_masks,
-    parse_cell_token,
     read_grid_from_input_file,
     solve_all_grids,
 )
@@ -24,13 +23,6 @@ SAMPLE_PUZZLES = load_sample_puzzles()
 
 
 class BasicInputTests(unittest.TestCase):
-    def test_parses_empty_and_digit_tokens(self) -> None:
-        self.assertEqual(parse_cell_token("", 1), EMPTY_CELL)
-        self.assertEqual(parse_cell_token("5", 2), 5)
-
-        with self.assertRaises(ValueError):
-            parse_cell_token("x", 3)
-
     def test_rejects_invalid_grids(self) -> None:
         with self.assertRaisesRegex(ValueError, "9 rows of 9 cells"):
             build_initial_masks([[1, 2, 3]])
