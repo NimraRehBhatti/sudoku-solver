@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from sudoku.test import (
+from sudoku.solver import (
     ALL_DIGITS_MASK,
     EMPTY_CELL,
     GRID_SIZE,
