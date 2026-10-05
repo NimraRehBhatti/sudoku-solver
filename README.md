@@ -72,31 +72,6 @@ module:
 python -m sudoku samples/sample-sudoku-2.txt
 ```
 
-## Run the Tests
-
-From the project root, run:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-The tests cover malformed files, invalid grid values and shapes, duplicate
-givens, unique and multiple-solution puzzles, solution limits, unsolvable
-puzzles, and input-grid immutability.
-
-## How It Works
-
-Each digit is represented by one bit in an integer:
-
-- Digit 1 uses bit 0
-- Digit 2 uses bit 1
-- Digit 9 uses bit 8
-
-The solver stores one bitmask for every row, column, and 3x3 box. Candidate
-values are calculated by combining those masks. The solver chooses the empty
-cell with the fewest candidates, tries each candidate, and backtracks when a
-choice cannot lead to a solution.
-
 
 ## Project Structure
 
@@ -107,8 +82,6 @@ sudoku-solver/
 |   |-- sample-sudoku-2.txt
 |   |-- sample-sudoku-3.txt
 |   `-- sample-sudoku-4.txt
-|-- tests/
-|   `-- test_solver.py
 |-- sudoku/
 |   |-- __init__.py
 |   `-- solver.py
